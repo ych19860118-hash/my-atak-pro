@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>類 ATAK 戰術圖像平台 (Google衛星混合版)</title>
+    
+    <!-- 🌟 回歸最安全的官方標準引入通道，不再使用本地 js/css 檔案避開權限問題 -->
+    <link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #000; }
+        #map { height: 100vh; width: 100vw; position: absolute; top: 0; left: 0; z-index: 1; }
+        #status-bar {
+            position: absolute; top: 10px; left: 50px; z-index: 1000;
+            background: rgba(0, 0, 0, 0.85); color: #00ff00; border: 1px solid #00ff00;
+            padding: 8px 15px; border-radius: 5px; font-size: 14px; font-family: monospace;
+        }
+        .control-panel {
+            position: absolute; bottom: 20px; left: 20px; z-index: 1000;
+            background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5); width: 250px; color: white;
+        }
+        select, input, button { margin: 5px 0; display: block; width: 100%; padding: 8px; box-sizing: border-box; background: #0d1117; color: white; border: 1px solid #30363d; border-radius: 6px; }
+    </style>
+</head>
+<body>
+
+    <!-- 狀態列 -->
+    <div id="status-bar">正在安全載入 Google 戰術衛星通道...</div>
+
+    <!-- 控制面板 -->
+    <div class="control-panel">
+        <label><b>ATAK 戰術標記工具</b></label>
+        <select id="marker-type">
+            <option value="friendly">🔵 友軍位置 (Friendly)</option>
+            <option value="hostile">🔴 敵軍/威脅 (Hostile)</option>
+            <option value="infantry">⚔️ 任務目標 (Objective)</option>
+        </select>
+        <input type="text" id="marker-label" placeholder="輸入標記名稱">
+        <small style="color: #8b949e;">提示：設定後點擊地圖任意位置即可部署標記</small>
+    </div>
+
+    <!-- 地圖容器 -->
+    <div id="map"></div>
+
+    <script>
+        // 1. 解析網址房號
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room') || 'public_lobby';
+        document.getElementById('status-bar').innerText = `🎯 TACTICAL_ROOM: ${roomId} [GOOGLE_HYBRID]`;
+
+        // 2. 初始化台灣地圖中心點
+        const map = L.map('map').setView([23.6, 121.0], 8);
+        
+        // 🌟 採用全世界最穩定、包含中央山脈立體地形與中文馬路道路標註的 Google 衛星混合地圖通道
+        L.tileLayer('https://google.com{x}&y={y}&z={z}', {
+            attribution: '© Google Maps'
+        }).addTo(map);
+
+        const markerGroup = L.layerGroup().addTo(map);
+
+        // 3. 自動辨識當前網域建立 WebSocket 實時通訊
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const socket = new WebSocket(`${protocol}${window.location.host}`);
+
+        socket.onopen = () => {
+            socket.send(JSON.stringify({ action: 'join', room_id: roomId }));
+        };
+
+        socket.onmessage = (event) => {
+            const parsed = JSON.parse(event.data);
+
+            if (parsed.action === 'init') {
+                markerGroup.clearLayers();
+                parsed.data.forEach(item => drawMarker(item));
+            }
+
+            if (parsed.action === 'broadcast_marker') {
+                drawMarker(parsed.data);
+            }
+        };
+
+        // 4. 繪製標記
+        function drawMarker(data) {
+            let color = 'blue';
+            if (data.type === 'hostile') color = 'red';
+            if (data.type === 'infantry') color = 'green';
+
+            const marker = L.circleMarker([data.lat, data.lng], {
+                radius: 10,
+                fillColor: color,
+                color: "#fff",
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).addTo(markerGroup);
+
+            marker.bindPopup(`<b>${data.label || '未命名標記'}</b><br>類型: ${data.type}`);
+        }
+
+        // 5. 點擊地圖新增標記
+        map.on('click', (e) => {
+            const type = document.getElementById('marker-type').value;
+            const label = document.getElementById('marker-label').value || '未命名標記';
+            const lat = e.latlng.lat;
+            const lng = e.latlng.lng;
+
+            const markerData = { type, lat, lng, label };
+
+            socket.send(JSON.stringify({
+                action: 'add_marker',
+                data: markerData
+            }));
+
+            drawMarker(markerData);
+            document.getElementById('marker-label').value = '';
+        });
+    </script>
+</body>
+</html>
