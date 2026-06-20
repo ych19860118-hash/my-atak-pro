@@ -1,13 +1,13 @@
-<!DOCTYPE html>
+html<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>類 ATAK 戰術圖像平台 (Google衛星混合版)</title>
+    <title>類 ATAK 戰術圖像平台 (終極完全體)</title>
     
-    <!-- 🌟 最正規、100% 帶有完整匿名解鎖標籤的官方 Leaflet 資源通道 -->
-    <link rel="stylesheet" href="https://unpkg.com" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
-    <script src="https://unpkg.com" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <!-- 🌟 核心突破：直接從雲端穩定通道載入 Leaflet 大腦資源，補上 100% 精準的完整長路徑 -->
+    <link rel="stylesheet" href="https://cloudflare.com" />
+    <script src="https://cloudflare.com"></script>
 
     <style>
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #000; }
@@ -28,7 +28,7 @@
 <body>
 
     <!-- 狀態列 -->
-    <div id="status-bar">正在安全載入 Google 戰術衛星通道...</div>
+    <div id="status-bar">正在安全建立戰術衛星通道...</div>
 
     <!-- 控制面板 -->
     <div class="control-panel">
@@ -46,77 +46,87 @@
     <div id="map"></div>
 
     <script>
-        // 1. 解析網址房號
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomId = urlParams.get('room') || 'public_lobby';
-        document.getElementById('status-bar').innerText = `🎯 TACTICAL_ROOM: ${roomId} [GOOGLE_HYBRID]`;
-
-        // 2. 初始化台灣地圖中心點
-        const map = L.map('map').setView([23.6, 121.0], 8);
-        
-        // 🌟 採用全世界最穩定、包含中央山脈立體地形與中文馬路道路標註的 Google 衛星混合地圖通道
-        L.tileLayer('https://google.com{x}&y={y}&z={z}', {
-            attribution: '© Google Maps'
-        }).addTo(map);
-
-        const markerGroup = L.layerGroup().addTo(map);
-
-        // 3. 自動辨識當前網域建立 WebSocket 實時通訊
-        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
-        const socket = new WebSocket(`${protocol}${window.location.host}`);
-
-        socket.onopen = () => {
-            socket.send(JSON.stringify({ action: 'join', room_id: roomId }));
-        };
-
-        socket.onmessage = (event) => {
-            const parsed = JSON.parse(event.data);
-
-            if (parsed.action === 'init') {
-                markerGroup.clearLayers();
-                parsed.data.forEach(item => drawMarker(item));
+        // 安全檢查機制：確保地圖函式庫就位後才啟動
+        function checkAndInit() {
+            if (typeof L !== 'undefined') {
+                initTacticalMap();
+            } else {
+                console.log("地圖資源下載中，1秒後重試...");
+                setTimeout(checkAndInit, 1000);
             }
-
-            if (parsed.action === 'broadcast_marker') {
-                drawMarker(parsed.data);
-            }
-        };
-
-        // 4. 繪製標記
-        function drawMarker(data) {
-            let color = 'blue';
-            if (data.type === 'hostile') color = 'red';
-            if (data.type === 'infantry') color = 'green';
-
-            const marker = L.circleMarker([data.lat, data.lng], {
-                radius: 10,
-                fillColor: color,
-                color: "#fff",
-                weight: 2,
-                opacity: 1,
-                fillOpacity: 0.8
-            }).addTo(markerGroup);
-
-            marker.bindPopup(`<b>${data.label || '未命名標記'}</b><br>類型: ${data.type}`);
         }
 
-        // 5. 點擊地圖新增標記
-        map.on('click', (e) => {
-            const type = document.getElementById('marker-type').value;
-            const label = document.getElementById('marker-label').value || '未命名標記';
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
+        function initTacticalMap() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomId = urlParams.get('room') || 'public_lobby';
+            document.getElementById('status-bar').innerText = `🎯 TACTICAL_ROOM: ${roomId} [GOOGLE_HYBRID]`;
 
-            const markerData = { type, lat, lng, label };
+            // 初始化台灣地圖中心點
+            const map = L.map('map').setView([23.6, 121.0], 8);
+            
+            // 🌟 採用全世界最穩定、絕對不阻擋的 Google 官方衛星混合底圖通道
+            L.tileLayer('https://google.com{x}&y={y}&z={z}', {
+                attribution: '© Google Maps'
+            }).addTo(map);
 
-            socket.send(JSON.stringify({
-                action: 'add_marker',
-                data: markerData
-            }));
+            const markerGroup = L.layerGroup().addTo(map);
 
-            drawMarker(markerData);
-            document.getElementById('marker-label').value = '';
-        });
+            // 自動辨識當前網域建立 WebSocket 實時通訊
+            const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+            const socket = new WebSocket(`${protocol}${window.location.host}`);
+
+            socket.onopen = () => {
+                socket.send(JSON.stringify({ action: 'join', room_id: roomId }));
+            };
+
+            socket.onmessage = (event) => {
+                const parsed = JSON.parse(event.data);
+                if (parsed.action === 'init') {
+                    markerGroup.clearLayers();
+                    parsed.data.forEach(item => drawMarker(item));
+                }
+                if (parsed.action === 'broadcast_marker') {
+                    drawMarker(parsed.data);
+                }
+            };
+
+            function drawMarker(data) {
+                let color = 'blue';
+                if (data.type === 'hostile') color = 'red';
+                if (data.type === 'infantry') color = 'green';
+
+                const marker = L.circleMarker([data.lat, data.lng], {
+                    radius: 10,
+                    fillColor: color,
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(markerGroup);
+
+                marker.bindPopup(`<b>${data.label || '未命名標記'}</b><br>類型: ${data.type}`);
+            }
+
+            map.on('click', (e) => {
+                const type = document.getElementById('marker-type').value;
+                const label = document.getElementById('marker-label').value || '未命名標記';
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+
+                const markerData = { type, lat, lng, label };
+
+                socket.send(JSON.stringify({
+                    action: 'add_marker',
+                    data: markerData
+                }));
+
+                drawMarker(markerData);
+                document.getElementById('marker-label').value = '';
+            });
+        }
+
+        // 啟動地圖安全檢查機制
+        window.onload = checkAndInit;
     </script>
 </body>
 </html>
