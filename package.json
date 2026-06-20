@@ -1,0 +1,17 @@
+{
+  "name": "my-atak-pro",
+  "version": "1.0.0",
+  "description": "類 ATAK 多群組分流戰術平台完全體",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2",
+    "pg": "^8.11.5",
+    "ws": "^8.17.0"
+  }
+}
