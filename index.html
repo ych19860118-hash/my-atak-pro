@@ -1,13 +1,13 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>類 ATAK 戰術圖像平台 (終極完全體)</title>
     
-    <!-- 🌟 核心突破：直接從雲端穩定通道載入 Leaflet 大腦資源，補上 100% 精準的完整長路徑 -->
-    <link rel="stylesheet" href="https://cloudflare.com" />
-    <script src="https://cloudflare.com"></script>
+    <!-- 🌟 換回最正規、昨天晚上 100% 成功通關的官方標準加密安全通道，徹底告別 cloudflare 阻擋 -->
+    <link rel="stylesheet" href="https://openstreetmap.org" />
+    <script src="https://openstreetmap.org"></script>
 
     <style>
         body { margin: 0; padding: 0; font-family: Arial, sans-serif; background: #000; }
@@ -28,7 +28,7 @@ html<!DOCTYPE html>
 <body>
 
     <!-- 狀態列 -->
-    <div id="status-bar">正在安全建立戰術衛星通道...</div>
+    <div id="status-bar">正在載入戰術地圖...</div>
 
     <!-- 控制面板 -->
     <div class="control-panel">
@@ -46,32 +46,23 @@ html<!DOCTYPE html>
     <div id="map"></div>
 
     <script>
-        // 安全檢查機制：確保地圖函式庫就位後才啟動
-        function checkAndInit() {
-            if (typeof L !== 'undefined') {
-                initTacticalMap();
-            } else {
-                console.log("地圖資源下載中，1秒後重試...");
-                setTimeout(checkAndInit, 1000);
-            }
-        }
-
-        function initTacticalMap() {
+        // 讓網頁一打開，不管是誰、有沒有房號，都在第一時間先無條件把地圖加載出來！
+        window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const roomId = urlParams.get('room') || 'public_lobby';
             document.getElementById('status-bar').innerText = `🎯 TACTICAL_ROOM: ${roomId} [GOOGLE_HYBRID]`;
 
-            // 初始化台灣地圖中心點
+            // 1. 初始化台灣地圖中心點
             const map = L.map('map').setView([23.6, 121.0], 8);
             
-            // 🌟 採用全世界最穩定、絕對不阻擋的 Google 官方衛星混合底圖通道
+            // 2. 直接鋪上最穩定的 Google 官方衛星混合圖層（包含中央山脈與中文主要馬路標註）
             L.tileLayer('https://google.com{x}&y={y}&z={z}', {
                 attribution: '© Google Maps'
             }).addTo(map);
 
             const markerGroup = L.layerGroup().addTo(map);
 
-            // 自動辨識當前網域建立 WebSocket 實時通訊
+            // 3. 地圖亮起後，才在背景安全建立 WebSocket 通訊，絕對不綁架地圖的渲染
             const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
             const socket = new WebSocket(`${protocol}${window.location.host}`);
 
@@ -123,10 +114,7 @@ html<!DOCTYPE html>
                 drawMarker(markerData);
                 document.getElementById('marker-label').value = '';
             });
-        }
-
-        // 啟動地圖安全檢查機制
-        window.onload = checkAndInit;
+        };
     </script>
 </body>
 </html>
